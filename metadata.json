@@ -1,0 +1,6 @@
+{
+  "name": "SoftPay",
+  "description": "A minimalist, warm Japanese-aesthetic tipping widget for Web3 creators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

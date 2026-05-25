@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: #FFFFFF;
+  color: #000000;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 1. Rigid Containers & Borders with Constant Ambient Jitter (The Healing Breath) */
+@keyframes ambient-border-breath {
+  0% {
+    border-radius: 12px 16px 12px 16px;
+  }
+  33% {
+    border-radius: 16px 12px 15px 13px;
+  }
+  66% {
+    border-radius: 13px 15px 12px 16px;
+  }
+  100% {
+    border-radius: 12px 16px 12px 16px;
+  }
+}
+
+.notion-card {
+  border: 2px solid #000000;
+  box-shadow: 4px 4px 0px 0px #000000;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  /* Very slow, low-frame-rate, organic ambient jitter to simulate living textured paper */
+  animation: ambient-border-breath 2s steps(3) infinite;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.notion-card:hover {
+  background-color: #FAFAFA;
+  box-shadow: 6px 6px 0px 0px #000000;
+  /* 100% rigid boundaries: ABSOLUTELY no transform translate shift */
+}
+
+/* Inset containers with premium light soothing gray */
+.notion-card-inset {
+  background-color: #F4F4F4;
+  border: 2px solid #000000;
+  border-radius: 12px;
+}
+
+/* Precise Input fields with neat solid borders */
+.notion-input {
+  border: 2px solid #000000;
+  background-color: #FFFFFF;
+  color: #000000;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.1s ease;
+}
+
+.notion-input:focus {
+  outline: none;
+  border-color: #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+/* Primary Capsule Button */
+.notion-btn-primary {
+  background-color: #000000;
+  color: #FFFFFF;
+  border: 2px solid #000000;
+  font-weight: 700;
+  border-radius: 9999px; /* Complete pill rounded-full */
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 1);
+  transition: all 0.15s ease;
+}
+
+.notion-btn-primary:hover:not(:disabled) {
+  background-color: #1A1A1A;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  /* 100% rigid boundaries: ABSOLUTELY no transform translate shift */
+}
+
+.notion-btn-primary:active:not(:disabled) {
+  background-color: #333333;
+}
+
+/* Clay animation step transition classes */
+@keyframes step-bounce {
+  0% { transform: scale(0.9); }
+  33% { transform: scale(1.04); }
+  66% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.animate-step-bounce {
+  animation: step-bounce 0.35s steps(4) forwards;
+}
+
+/* Postcard themes Support */
+.bg-[#F4F4F4] {
+  background-color: #F4F4F4 !important;
+}
+
+/* Traditional Postcard Layout Colors */
+.bg-woodgrain {
+  background-color: #F8EFE7;
+  border: 2px solid #000000;
+}
+
+.bg-creamycotton {
+  background-color: #FAF8F4;
+  border: 2px solid #000000;
+}
+
+.bg-matchadiary {
+  background-color: #F3F5ED;
+  border: 2px solid #000000;
+}
+
+/* Watercolor palettes for simulated postcard state */
+.bg-matcha-watercolor {
+  background-color: #EAF0E6 !important;
+  border: 2px solid #000000;
+}
+
+.bg-sunyellow-watercolor {
+  background-color: #FAF6E5 !important;
+  border: 2px solid #000000;
+}
+
+.bg-softblue-watercolor {
+  background-color: #E6F0FA !important;
+  border: 2px solid #000000;
+}
