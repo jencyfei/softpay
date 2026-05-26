@@ -151,6 +151,7 @@ export default function App() {
     healingWord: string;
     amount: number;
     timestamp: string;
+    cardIndex: number; // 盲盒卡片索引 (1-34)
   }
   const [activePostcard, setActivePostcard] = useState<ActivePostcardData | null>(null);
 
@@ -164,6 +165,7 @@ export default function App() {
     themeIndex: number;
     healingWord: string;
     timestamp: string;
+    cardIndex: number; // 盲盒卡片索引 (1-34)
   }
   const [mailbox, setMailbox] = useState<MailboxItem[]>([]);
 
@@ -250,7 +252,8 @@ export default function App() {
         txHash: "Tx: 5HzpjK8uN7mR9yPqWv2b3k9w",
         themeIndex: 0,
         healingWord: "A simple thank you for the warm energy. You've made this space cozier. 🍵",
-        timestamp: "5/25/2026, 4:11 AM"
+        timestamp: "5/25/2026, 4:11 AM",
+        cardIndex: 7 // 预设卡片索引
       };
       setMailbox([initialItem]);
       localStorage.setItem("cozy_mailbox", JSON.stringify([initialItem]));
@@ -316,7 +319,11 @@ export default function App() {
       sigResult += base58Alphabet.charAt(movingSeed % base58Alphabet.length);
     }
     sigResult += "3k9w"; // Always enforce 3k9w suffix
-    return { txSig: sigResult, seedVal: absHash };
+    
+    // Calculate blind box card index (1-34) based on hash
+    const cardIndex = (absHash % 34) + 1;
+    
+    return { txSig: sigResult, seedVal: absHash, cardIndex };
   };
 
   // Main Tip Trigger Button Action handler
@@ -349,7 +356,7 @@ export default function App() {
 
     setTimeout(() => {
       // Retrieve 100% deterministic inputs
-      const { txSig, seedVal } = getDeterministicHash(fanName, fanMessage, finalAmount);
+      const { txSig, seedVal, cardIndex } = getDeterministicHash(fanName, fanMessage, finalAmount);
       
       // Seed theme watercolor directly from user inputs
       const themeIndex = seedVal % themesList.length;
@@ -368,7 +375,8 @@ export default function App() {
         fanMessage: fanMessage.trim(),
         healingWord: chosenMsg,
         amount: finalAmount,
-        timestamp: formattedTimestamp
+        timestamp: formattedTimestamp,
+        cardIndex: cardIndex // 盲盒卡片索引
       };
 
       // Set state to show on screen inside modal
@@ -383,7 +391,8 @@ export default function App() {
         txHash: txSig,
         themeIndex: themeIndex,
         healingWord: chosenMsg,
-        timestamp: formattedTimestamp
+        timestamp: formattedTimestamp,
+        cardIndex: cardIndex // 盲盒卡片索引
       };
 
       const updatedMailbox = [newMailboxItem, ...mailbox];
@@ -412,7 +421,8 @@ export default function App() {
       fanMessage: item.message,
       healingWord: item.healingWord,
       amount: item.amount,
-      timestamp: item.timestamp
+      timestamp: item.timestamp,
+      cardIndex: item.cardIndex || 1 // 向后兼容旧数据
     };
     setActivePostcard(historicalPostcard);
     setShowPostcard(true);
@@ -1245,11 +1255,13 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="py-4 flex flex-col items-center justify-center border-2 border-dashed border-black bg-white rounded-lg p-3">
-                      <span className="text-4xl select-none mb-2">☕</span>
-                      <span className="text-[10px] font-mono text-black uppercase tracking-wider font-extrabold">
-                        Stamp No. #{activePostcard.txHash.substring(4, 9).toUpperCase()}
-                      </span>
+                    <div className="py-4 flex flex-col items-center justify-center border-2 border-dashed border-black bg-white rounded-lg overflow-hidden">
+                      <img 
+                        id="blindBoxCard" 
+                        src={`/assets/card/card_${activePostcard.cardIndex}.jpg`}
+                        className="w-full h-full object-contain mx-auto" 
+                        alt="Collectible Blind Box Card Art"
+                      />
                     </div>
 
                     <div>
