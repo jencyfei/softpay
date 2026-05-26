@@ -152,6 +152,7 @@ export default function App() {
     amount: number;
     timestamp: string;
     cardIndex: number; // 盲盒卡片索引 (1-34)
+    rarity: "SSR" | "SR" | "COMMON"; // 稀有度等级
   }
   const [activePostcard, setActivePostcard] = useState<ActivePostcardData | null>(null);
 
@@ -166,6 +167,7 @@ export default function App() {
     healingWord: string;
     timestamp: string;
     cardIndex: number; // 盲盒卡片索引 (1-34)
+    rarity: "SSR" | "SR" | "COMMON"; // 稀有度等级
   }
   const [mailbox, setMailbox] = useState<MailboxItem[]>([]);
 
@@ -326,6 +328,64 @@ export default function App() {
     return { txSig: sigResult, seedVal: absHash, cardIndex };
   };
 
+  // Module A: Deterministic Rarity System (TxHash-Driven)
+  const calculateRarity = (txHash: string): "SSR" | "SR" | "COMMON" => {
+    // Extract last 6 characters before the suffix "3k9w"
+    const hashSegment = txHash.slice(-10, -4);
+    
+    // Calculate deterministic score from character codes
+    let rarityScore = 0;
+    for (let i = 0; i < hashSegment.length; i++) {
+      rarityScore += hashSegment.charCodeAt(i) * (i + 1);
+    }
+    
+    // Normalize to 0-100 range
+    const normalizedScore = rarityScore % 100;
+    
+    // Rarity distribution:
+    // SSR: 0-9 (10%)
+    // SR: 10-39 (30%)
+    // COMMON: 40-99 (60%)
+    if (normalizedScore < 10) {
+      return "SSR";
+    } else if (normalizedScore < 40) {
+      return "SR";
+    } else {
+      return "COMMON";
+    }
+  };
+
+  // Get rarity badge styling
+  const getRarityBadge = (rarity: "SSR" | "SR" | "COMMON") => {
+    switch (rarity) {
+      case "SSR":
+        return {
+          text: "✦ SSR - LIMITED",
+          bgColor: "bg-gradient-to-r from-amber-100 to-yellow-50",
+          textColor: "text-amber-900",
+          borderColor: "border-amber-400",
+          shadowColor: "shadow-amber-200"
+        };
+      case "SR":
+        return {
+          text: "✦ SR - RARE",
+          bgColor: "bg-gradient-to-r from-purple-100 to-lavender-50",
+          textColor: "text-purple-900",
+          borderColor: "border-purple-400",
+          shadowColor: "shadow-purple-200"
+        };
+      case "COMMON":
+        return {
+          text: "✦ COMMON",
+          bgColor: "bg-gradient-to-r from-gray-100 to-slate-50",
+          textColor: "text-gray-700",
+          borderColor: "border-gray-400",
+          shadowColor: "shadow-gray-200"
+        };
+    }
+  };
+
+
   // Main Tip Trigger Button Action handler
   const handleSendTip = (e: React.FormEvent) => {
     e.preventDefault();
@@ -358,6 +418,9 @@ export default function App() {
       // Retrieve 100% deterministic inputs
       const { txSig, seedVal, cardIndex } = getDeterministicHash(fanName, fanMessage, finalAmount);
       
+      // Calculate deterministic rarity from TxHash
+      const rarity = calculateRarity(txSig);
+      
       // Seed theme watercolor directly from user inputs
       const themeIndex = seedVal % themesList.length;
       const themeObj = themesList[themeIndex];
@@ -376,7 +439,8 @@ export default function App() {
         healingWord: chosenMsg,
         amount: finalAmount,
         timestamp: formattedTimestamp,
-        cardIndex: cardIndex // 盲盒卡片索引
+        cardIndex: cardIndex, // 盲盒卡片索引
+        rarity: rarity // 稀有度等级
       };
 
       // Set state to show on screen inside modal
@@ -392,7 +456,8 @@ export default function App() {
         themeIndex: themeIndex,
         healingWord: chosenMsg,
         timestamp: formattedTimestamp,
-        cardIndex: cardIndex // 盲盒卡片索引
+        cardIndex: cardIndex, // 盲盒卡片索引
+        rarity: rarity // 稀有度等级
       };
 
       const updatedMailbox = [newMailboxItem, ...mailbox];
@@ -422,11 +487,66 @@ export default function App() {
       healingWord: item.healingWord,
       amount: item.amount,
       timestamp: item.timestamp,
-      cardIndex: item.cardIndex || 1 // 向后兼容旧数据
+      cardIndex: item.cardIndex || 1, // 向后兼容旧数据
+      rarity: item.rarity || calculateRarity(item.txHash) // 向后兼容旧数据，重新计算稀有度
     };
     setActivePostcard(historicalPostcard);
     setShowPostcard(true);
     triggerNotification("📁 Re-opened historical receipt postcard.");
+  };
+
+  // Module B: HTML2Canvas Postcard Download Feature
+  const downloadPostcard = async () => {
+    if (!activePostcard) return;
+    
+    try {
+      // Dynamically import html2canvas
+      const html2canvas = (await import('html2canvas')).default;
+      
+      // Find the postcard container
+      const postcardElement = document.querySelector('.postcard-container') as HTMLElement;
+      if (!postcardElement) {
+        triggerNotification("❌ Unable to capture postcard. Please try again.");
+        return;
+      }
+
+      triggerNotification("📸 Capturing postcard...");
+
+      // Capture the postcard with high quality settings
+      const canvas = await html2canvas(postcardElement, {
+        scale: 2, // Higher resolution
+        useCORS: true, // Handle cross-origin images
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: postcardElement.scrollWidth,
+        windowHeight: postcardElement.scrollHeight
+      });
+
+      // Convert canvas to blob
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          triggerNotification("❌ Failed to generate image. Please try again.");
+          return;
+        }
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const filename = `softpay-postcard-${activePostcard.txHash.slice(4, 15)}.png`;
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        triggerNotification("✅ Postcard saved to your device!");
+      }, 'image/png', 1.0);
+
+    } catch (error) {
+      console.error('Download error:', error);
+      triggerNotification("❌ Download failed. Please try again.");
+    }
   };
 
   return (
@@ -932,14 +1052,26 @@ export default function App() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {mailbox.map((item) => {
                   const matchingTheme = themesList[item.themeIndex] || themesList[0];
+                  const itemRarity = item.rarity || calculateRarity(item.txHash);
+                  const rarityBadge = getRarityBadge(itemRarity);
+                  
                   return (
                     <button
                       key={item.id}
                       onClick={() => viewHistoricPostcard(item)}
-                      className={`text-left p-4 rounded-xl border-2 border-black transition-all group cursor-pointer flex flex-col justify-between h-[152px] shadow-[3px_3px_0px_0px_#000000] hover:shadow-[5px_5px_0px_0px_#000000] relative overflow-hidden ${matchingTheme.bgTexture}`}
+                      className={`text-left p-4 rounded-xl border-2 transition-all group cursor-pointer flex flex-col justify-between h-[152px] shadow-[3px_3px_0px_0px_#000000] hover:shadow-[5px_5px_0px_0px_#000000] relative overflow-hidden ${matchingTheme.bgTexture} ${
+                        itemRarity === 'SSR' ? 'border-amber-400' : 
+                        itemRarity === 'SR' ? 'border-purple-400' : 
+                        'border-black'
+                      }`}
                     >
                       {/* Paper envelope flap lines mock overlay */}
                       <div className="absolute top-0 left-0 right-0 h-1 bg-black/10" />
+                      
+                      {/* Rarity indicator corner badge */}
+                      <div className={`absolute top-2 right-2 text-[7px] font-mono font-black uppercase tracking-tight py-0.5 px-1.5 rounded border ${rarityBadge.bgColor} ${rarityBadge.textColor} ${rarityBadge.borderColor}`}>
+                        {itemRarity}
+                      </div>
                       
                       <div className="flex justify-between items-start">
                         <div className="w-8 h-8 rounded-full border border-black/40 bg-white/70 flex items-center justify-center text-xs font-mono font-black shadow-[1px_1px_0px_0px_#000000]">
@@ -1232,7 +1364,7 @@ export default function App() {
               </div>
 
               {/* Physical Postcard Content Body */}
-              <div className={`rounded-xl border-2 border-black ${activePostcard.theme.bgTexture} p-6 md:p-8 relative overflow-hidden shadow-[4px_4px_0px_0px_#000000]`}>
+              <div className={`postcard-container rounded-xl border-2 border-black ${activePostcard.theme.bgTexture} p-6 md:p-8 relative overflow-hidden shadow-[4px_4px_0px_0px_#000000]`}>
                 
                 {/* Vintage Postcard Left/Right divide line */}
                 <svg className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-6 h-full pointer-events-none hidden md:block text-black/50" fill="none" preserveAspectRatio="none" viewBox="0 0 24 600">
@@ -1244,9 +1376,15 @@ export default function App() {
                   {/* LEFT SIDE */}
                   <div className="flex flex-col justify-between text-left space-y-4">
                     <div>
-                      <span className="text-[10px] uppercase font-mono font-black tracking-wider py-1 px-3 bg-black text-white border border-black">
-                        {activePostcard.theme.themeName}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] uppercase font-mono font-black tracking-wider py-1 px-3 bg-black text-white border border-black">
+                          {activePostcard.theme.themeName}
+                        </span>
+                        {/* Rarity Badge */}
+                        <span className={`text-[9px] uppercase font-mono font-black tracking-wider py-1 px-2.5 border-2 ${getRarityBadge(activePostcard.rarity).bgColor} ${getRarityBadge(activePostcard.rarity).textColor} ${getRarityBadge(activePostcard.rarity).borderColor} rounded shadow-sm`}>
+                          {getRarityBadge(activePostcard.rarity).text}
+                        </span>
+                      </div>
                       <h4 className="text-xl font-bold uppercase tracking-wide mt-3 text-black">
                         A Moment of Soft Peace 🍯
                       </h4>
@@ -1255,11 +1393,11 @@ export default function App() {
                       </p>
                     </div>
 
-                    <div className="py-4 flex flex-col items-center justify-center border-2 border-dashed border-black bg-white rounded-lg overflow-hidden">
+                    <div className="py-4 flex items-center justify-center">
                       <img 
                         id="blindBoxCard" 
                         src={`/assets/card/card_${activePostcard.cardIndex}.jpg`}
-                        className="w-full h-full object-contain mx-auto" 
+                        className="w-full h-auto block border-2 border-dashed border-black bg-white rounded-lg" 
                         alt="Collectible Blind Box Card Art"
                       />
                     </div>
@@ -1337,12 +1475,20 @@ export default function App() {
 
               </div>
 
-              {/* Close and Return button */}
-              <div className="mt-6">
+              {/* Action Buttons */}
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={downloadPostcard}
+                  className="flex items-center justify-center gap-2 py-4 bg-white border-2 border-black text-black hover:bg-gray-50 rounded-xl text-sm tracking-wide uppercase font-black cursor-pointer transition-all shadow-[3px_3px_0px_0px_#000000] hover:shadow-[5px_5px_0px_0px_#000000]"
+                >
+                  <span>💾</span>
+                  <span>Save to Journal</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowPostcard(false)}
-                  className="w-full notion-btn-primary py-4 hover:bg-gray-900 justify-center text-sm tracking-wide uppercase font-black cursor-pointer"
+                  className="notion-btn-primary py-4 hover:bg-gray-900 justify-center text-sm tracking-wide uppercase font-black cursor-pointer"
                 >
                   Done & Return
                 </button>
