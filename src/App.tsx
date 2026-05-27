@@ -1050,14 +1050,14 @@ export default function App() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {mailbox.map((item) => {
+                {mailbox.map((item, index) => {
                   const matchingTheme = themesList[item.themeIndex] || themesList[0];
                   const itemRarity = item.rarity || calculateRarity(item.txHash);
                   const rarityBadge = getRarityBadge(itemRarity);
                   
                   return (
                     <button
-                      key={item.id}
+                      key={`${item.id}-${index}`}
                       onClick={() => viewHistoricPostcard(item)}
                       className={`text-left p-4 rounded-xl border-2 transition-all group cursor-pointer flex flex-col justify-between h-[152px] shadow-[3px_3px_0px_0px_#000000] hover:shadow-[5px_5px_0px_0px_#000000] relative overflow-hidden ${matchingTheme.bgTexture} ${
                         itemRarity === 'SSR' ? 'border-amber-400' : 
