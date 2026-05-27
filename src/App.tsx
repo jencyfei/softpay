@@ -512,6 +512,31 @@ export default function App() {
 
       triggerNotification("📸 Capturing postcard...");
 
+      // Workaround: html2canvas doesn't support oklab() colors from Tailwind v4
+      // Temporarily convert problematic color functions to hex equivalents
+      const elementsWithOklab: Array<{ element: HTMLElement; originalColor: string; property: string }> = [];
+      
+      postcardElement.querySelectorAll('*').forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        const computedStyle = window.getComputedStyle(htmlEl);
+        
+        // Check common color properties for oklab
+        ['color', 'backgroundColor', 'borderColor'].forEach((prop) => {
+          const value = computedStyle.getPropertyValue(prop);
+          if (value && value.includes('oklab')) {
+            // Store original and convert to computed RGB
+            const rgbValue = computedStyle.getPropertyValue(prop);
+            elementsWithOklab.push({
+              element: htmlEl,
+              originalColor: htmlEl.style.getPropertyValue(prop),
+              property: prop
+            });
+            // Force inline style with computed color
+            htmlEl.style.setProperty(prop, rgbValue, 'important');
+          }
+        });
+      });
+
       // Capture the postcard with high quality settings
       const canvas = await html2canvas(postcardElement, {
         scale: 2, // Higher resolution
@@ -519,7 +544,32 @@ export default function App() {
         backgroundColor: '#ffffff',
         logging: false,
         windowWidth: postcardElement.scrollWidth,
-        windowHeight: postcardElement.scrollHeight
+        windowHeight: postcardElement.scrollHeight,
+        onclone: (clonedDoc) => {
+          // Additional cleanup in cloned document if needed
+          const clonedContainer = clonedDoc.querySelector('.postcard-container');
+          if (clonedContainer) {
+            // Ensure all colors are resolved
+            clonedContainer.querySelectorAll('*').forEach((el) => {
+              const htmlEl = el as HTMLElement;
+              const style = window.getComputedStyle(htmlEl);
+              
+              // Force computed colors
+              if (style.color) htmlEl.style.color = style.color;
+              if (style.backgroundColor) htmlEl.style.backgroundColor = style.backgroundColor;
+              if (style.borderColor) htmlEl.style.borderColor = style.borderColor;
+            });
+          }
+        }
+      });
+
+      // Restore original styles
+      elementsWithOklab.forEach(({ element, originalColor, property }) => {
+        if (originalColor) {
+          element.style.setProperty(property, originalColor);
+        } else {
+          element.style.removeProperty(property);
+        }
       });
 
       // Convert canvas to blob
