@@ -899,12 +899,15 @@ export default function App() {
                     }
 
                     return (
-                      <button
+                      <motion.button
                         key={tier.id}
                         type="button"
                         onClick={() => setSelectedTier(tier.id)}
                         onMouseEnter={() => setHoveredTierId(tier.id)}
                         onMouseLeave={() => setHoveredTierId(null)}
+                        whileHover={{ y: -2, scale: 1.01 }}
+                        whileTap={{ scale: 0.96, rotate: -0.5, y: 2 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 15, mass: 0.5 }}
                         className={`text-left rounded-2xl p-4 border-2 border-black transition-all duration-150 group relative flex flex-col justify-between h-[220px] cursor-pointer ${
                           isSelected 
                           ? selectedBgAndText
@@ -926,14 +929,17 @@ export default function App() {
                           </div>
                           <div className="text-lg font-mono font-black text-black">${tier.amount} USDC</div>
                         </div>
-                      </button>
+                      </motion.button>
                     );
                   })}
 
                   {/* CUSTOM TIER BUTTON */}
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => setSelectedTier("custom")}
+                    whileHover={{ y: -2, scale: 1.01 }}
+                    whileTap={{ scale: 0.96, rotate: -0.5, y: 2 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15, mass: 0.5 }}
                     className={`text-left rounded-2xl p-4 border-2 border-black transition-all duration-150 group relative flex flex-col justify-between h-[220px] cursor-pointer ${
                       selectedTier === "custom" 
                       ? "bg-[#FFF2CC] text-black border-2 border-black shadow-[3px_3px_0px_0px_#000000]" 
@@ -987,7 +993,7 @@ export default function App() {
                         Custom USDC
                       </div>
                     </div>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
@@ -1008,9 +1014,12 @@ export default function App() {
               </div>
 
               <form onSubmit={handleSendTip} className="mt-6">
-                <button
+                <motion.button
                   type="submit"
                   disabled={isBrewing}
+                  whileHover={{ y: -2, scale: 1.01 }}
+                  whileTap={{ scale: 0.96, rotate: -0.5, y: 2 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 15, mass: 0.5 }}
                   className="w-full notion-btn-primary py-4.5 px-8 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isBrewing ? (
@@ -1027,7 +1036,7 @@ export default function App() {
                       <Send className="w-4 h-4 opacity-80" />
                     </span>
                   )}
-                </button>
+                </motion.button>
               </form>
             </div>
 
@@ -1069,7 +1078,7 @@ export default function App() {
                       key={`${item.id}-${index}`}
                       onClick={() => viewHistoricPostcard(item)}
                       className={`text-left p-4 rounded-xl border-2 transition-all group cursor-pointer flex flex-col justify-between h-[152px] shadow-[3px_3px_0px_0px_#000000] hover:shadow-[5px_5px_0px_0px_#000000] relative overflow-hidden ${matchingTheme.bgTexture} ${
-                        itemRarity === 'SSR' ? 'border-amber-400' : 
+                        itemRarity === 'SSR' ? 'border-amber-400 ssr-gilded-shimmer' : 
                         itemRarity === 'SR' ? 'border-purple-400' : 
                         'border-black'
                       }`}
@@ -1351,8 +1360,14 @@ export default function App() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
           >
-            <div 
-              className="bg-white border-4 border-black text-black rounded-2xl p-6 md:p-8 max-w-2xl w-full shadow-[8px_8px_0px_0px_#000000] relative animate-step-bounce overflow-hidden bg-dot-pattern"
+            <motion.div
+              initial={{ y: "-100vh", opacity: 0, rotate: -6, scale: 0.9 }}
+              animate={{ y: 0, opacity: 1, rotate: -1.5, scale: 1 }}
+              exit={{ y: "-100vh", opacity: 0, rotate: 6, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 220, damping: 14, mass: 0.8 }}
+              className={`bg-white border-4 border-black text-black rounded-2xl p-6 md:p-8 max-w-2xl w-full shadow-[8px_8px_0px_0px_#000000] relative overflow-hidden bg-dot-pattern ${
+                activePostcard.rarity === 'SSR' ? 'ssr-gilded-shimmer' : ''
+              }`}
             >
               
               {/* Header inside modal */}
@@ -1502,7 +1517,7 @@ export default function App() {
                   Done & Return
                 </button>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
