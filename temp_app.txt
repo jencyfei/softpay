@@ -18,19 +18,8 @@ import {
   RefreshCw, 
   X, 
   ArrowUpRight,
-  CheckCircle,
-  Share2
+  CheckCircle
 } from "lucide-react";
-import { ScratchCard } from "./components/ScratchCard";
-import {
-  isPhantomInstalled,
-  connectPhantomWallet,
-  disconnectPhantomWallet,
-  sendSolTransaction,
-  getWalletBalance,
-  formatSignature,
-  getExplorerUrl
-} from "./utils/solana";
 
 // Types for Hand-drawn Doodle Postcard Theme
 interface SeededPostcardTheme {
@@ -134,7 +123,6 @@ export default function App() {
   const [simulationMode, setSimulationMode] = useState<"live" | "simulate">("simulate");
   const [walletConnected, setWalletConnected] = useState<boolean>(false); // Disconnected initially so judges can play with simulator!
   const [walletAddress, setWalletAddress] = useState<string>("SoFtJn_6zRxF3X8yQwPqL");
-  const [walletFullAddress, setWalletFullAddress] = useState<string>(""); // Store full public key for Live Mode
   
   // Phantom Wallet Simulator States
   const [showWalletModal, setShowWalletModal] = useState<boolean>(false);
@@ -182,11 +170,6 @@ export default function App() {
     rarity: "SSR" | "SR" | "COMMON"; // 稀有度等级
   }
   const [mailbox, setMailbox] = useState<MailboxItem[]>([]);
-
-  // Stamp Collection Achievement System
-  const [uniqueStampsCount, setUniqueStampsCount] = useState<number>(0);
-  const [achievementUnlocked, setAchievementUnlocked] = useState<boolean>(false);
-  const [premiumThemeActive, setPremiumThemeActive] = useState<boolean>(false);
 
   const healingMessages = [
     "A simple thank you for the warm energy. You've made this space cozier. 🍵",
@@ -272,116 +255,29 @@ export default function App() {
         themeIndex: 0,
         healingWord: "A simple thank you for the warm energy. You've made this space cozier. 🍵",
         timestamp: "5/25/2026, 4:11 AM",
-        cardIndex: 7, // 预设卡片索引
-        rarity: "COMMON" // 预设稀有度
+        cardIndex: 7 // 预设卡片索引
       };
       setMailbox([initialItem]);
       localStorage.setItem("cozy_mailbox", JSON.stringify([initialItem]));
     }
   }, []);
 
-  // Calculate unique stamps and check achievement status
-  useEffect(() => {
-    // Calculate unique cardIndex values
-    const uniqueCards = new Set(
-      mailbox
-        .filter(item => item.cardIndex && item.cardIndex >= 1 && item.cardIndex <= 34)
-        .map(item => item.cardIndex)
-    );
-    setUniqueStampsCount(uniqueCards.size);
-
-    // Load achievement status from LocalStorage
-    const savedAchievement = localStorage.getItem("stamp_achievement_unlocked");
-    const wasUnlocked = savedAchievement === "true";
-    
-    // Check if achievement should be unlocked
-    if (uniqueCards.size >= 5 && !wasUnlocked) {
-      setAchievementUnlocked(true);
-      localStorage.setItem("stamp_achievement_unlocked", "true");
-      triggerNotification("🎉 Achievement Unlocked! You've collected 5 unique stamps! Premium theme now available.");
-    } else if (wasUnlocked) {
-      setAchievementUnlocked(true);
-    }
-
-    // Load theme preference
-    const savedTheme = localStorage.getItem("premium_theme_active");
-    if (savedTheme === "true" && wasUnlocked) {
-      setPremiumThemeActive(true);
-    }
-  }, [mailbox]);
-
-  // Toggle premium theme
-  const togglePremiumTheme = () => {
-    const newState = !premiumThemeActive;
-    setPremiumThemeActive(newState);
-    localStorage.setItem("premium_theme_active", newState.toString());
-    triggerNotification(newState ? "✨ Premium theme activated!" : "🎨 Default theme restored.");
-  };
-
   // Connect wallet button trigger
-  const handleConnectWalletBtn = async () => {
+  const handleConnectWalletBtn = () => {
     if (walletConnected) {
       // Show view-disconnect popup
       setWalletModalMode("view");
-      setShowWalletModal(true);
     } else {
-      // Live Mode: Use real Phantom wallet
-      if (simulationMode === "live") {
-        await handleLiveWalletConnect();
-      } else {
-        // Simulate Mode: Show mock modal
-        setWalletModalMode("connect");
-        setShowWalletModal(true);
-      }
+      // Show connect wallet prompt
+      setWalletModalMode("connect");
     }
+    setShowWalletModal(true);
   };
 
-  // Live Mode: Real Phantom wallet connection
-  const handleLiveWalletConnect = async () => {
-    try {
-      if (!isPhantomInstalled()) {
-        triggerNotification("❌ Phantom wallet not detected. Please install it from phantom.app");
-        window.open("https://phantom.app/", "_blank");
-        return;
-      }
-
-      setWalletIsLoading(true);
-      triggerNotification("🔗 Connecting to Phantom wallet...");
-
-      const { publicKey, address } = await connectPhantomWallet();
-      
-      setWalletConnected(true);
-      setWalletFullAddress(publicKey);
-      setWalletAddress(address);
-      setWalletIsLoading(false);
-      
-      triggerNotification("✅ Phantom wallet connected successfully!");
-    } catch (error: any) {
-      setWalletIsLoading(false);
-      console.error("Wallet connection error:", error);
-      triggerNotification(`❌ Connection failed: ${error.message || "Unknown error"}`);
-    }
-  };
-
-  const executeDisconnect = async () => {
-    try {
-      // Live Mode: Real disconnect
-      if (simulationMode === "live" && walletFullAddress) {
-        await disconnectPhantomWallet();
-        triggerNotification("👛 Phantom wallet disconnected.");
-      } else {
-        // Simulate Mode
-        triggerNotification("👛 Simulating: Phantom Wallet disconnected.");
-      }
-      
-      setWalletConnected(false);
-      setWalletFullAddress("");
-      setWalletAddress("SoFtJn_6zRxF3X8yQwPqL");
-      setShowWalletModal(false);
-    } catch (error: any) {
-      console.error("Disconnect error:", error);
-      triggerNotification(`❌ Disconnect failed: ${error.message || "Unknown error"}`);
-    }
+  const executeDisconnect = () => {
+    setWalletConnected(false);
+    setShowWalletModal(false);
+    triggerNotification("👛 Simulating: Phantom Wallet disconnected.");
   };
 
   const executeConnect = () => {
@@ -403,23 +299,7 @@ export default function App() {
   };
 
   // Feature B: Deterministic TxHash Seed Logic (The Web3 Proof)
-  // Now also accepts real Solana signatures from Live Mode
-  const getDeterministicHash = (name: string, message: string, amount: number, realSignature?: string) => {
-    // If we have a real signature from Live Mode, use it directly
-    if (realSignature) {
-      // Extract seed value from real signature for deterministic card selection
-      let hashCode = 0;
-      for (let i = 0; i < Math.min(realSignature.length, 32); i++) {
-        hashCode = (hashCode << 5) - hashCode + realSignature.charCodeAt(i);
-        hashCode |= 0;
-      }
-      const absHash = Math.abs(hashCode);
-      const cardIndex = (absHash % 34) + 1;
-      
-      return { txSig: realSignature, seedVal: absHash, cardIndex };
-    }
-    
-    // Simulate Mode: Generate deterministic mock signature
+  const getDeterministicHash = (name: string, message: string, amount: number) => {
     const normalizedName = (name || "Warm Supporter").trim();
     const normalizedMsg = (message || "A simple thank you for the warm energy.").trim();
     const combined = `${normalizedName}|${normalizedMsg}|${amount.toFixed(2)}`;
@@ -507,133 +387,26 @@ export default function App() {
 
 
   // Main Tip Trigger Button Action handler
-  const handleSendTip = async (e: React.FormEvent) => {
+  const handleSendTip = (e: React.FormEvent) => {
     e.preventDefault();
     const finalVal = getSelectedAmount();
 
+    if (simulationMode === "live") {
+      triggerNotification("💡 Switch to Simulate Mode to try the on-chain sketch signature generator.");
+      return;
+    }
+
     // Guard: Must connect wallet first
     if (!walletConnected) {
-      if (simulationMode === "live") {
-        await handleLiveWalletConnect();
-      } else {
-        setWalletModalMode("connect");
-        setShowWalletModal(true);
-      }
+      setWalletModalMode("connect");
+      setShowWalletModal(true);
       triggerNotification("👛 Please authorize connection to your Phantom wallet first!");
       return;
     }
 
-    // Live Mode: Execute real blockchain transaction
-    if (simulationMode === "live") {
-      await handleLiveTransaction();
-    } else {
-      // Simulate Mode: Show approval modal
-      setWalletModalMode("approve");
-      setShowWalletModal(true);
-    }
-  };
-
-  // Live Mode: Real Solana transaction
-  const handleLiveTransaction = async () => {
-    const finalAmount = getSelectedAmount();
-    
-    try {
-      setIsBrewing(true);
-      triggerNotification("🔗 Sending transaction to Solana Devnet...");
-
-      // Send real SOL transaction
-      const { signature, amount } = await sendSolTransaction(finalAmount);
-      
-      triggerNotification("✅ Transaction confirmed on Solana Devnet!");
-      
-      // Process the real signature through our existing system
-      await processTransactionSuccess(signature, finalAmount, true);
-      
-    } catch (error: any) {
-      setIsBrewing(false);
-      console.error("Transaction error:", error);
-      
-      if (error.message?.includes("User rejected")) {
-        triggerNotification("❌ Transaction cancelled by user.");
-      } else if (error.message?.includes("insufficient")) {
-        triggerNotification("❌ Insufficient SOL balance. Get Devnet SOL from faucet.solana.com");
-      } else {
-        triggerNotification(`❌ Transaction failed: ${error.message || "Unknown error"}`);
-      }
-    }
-  };
-
-  // Process transaction success (works for both Live and Simulate modes)
-  const processTransactionSuccess = async (signature: string, finalAmount: number, isLiveMode: boolean = false) => {
-    // Retrieve deterministic data using real or mock signature
-    const { txSig, seedVal, cardIndex } = getDeterministicHash(
-      fanName, 
-      fanMessage, 
-      finalAmount,
-      isLiveMode ? signature : undefined
-    );
-    
-    // Calculate deterministic rarity from TxHash
-    const rarity = calculateRarity(txSig);
-    
-    // Seed theme watercolor directly from user inputs
-    const themeIndex = seedVal % themesList.length;
-    const themeObj = themesList[themeIndex];
-
-    // Seed healing word directly from user inputs
-    const healingMessageIndex = seedVal % healingMessages.length;
-    const chosenMsg = healingMessages[healingMessageIndex];
-
-    const formattedTimestamp = new Date().toLocaleString();
-
-    const newPostcard: ActivePostcardData = {
-      theme: themeObj,
-      txHash: txSig,
-      fanName: fanName.trim() || "Warm Supporter",
-      fanMessage: fanMessage.trim(),
-      healingWord: chosenMsg,
-      amount: finalAmount,
-      timestamp: formattedTimestamp,
-      cardIndex: cardIndex,
-      rarity: rarity
-    };
-
-    // Set state to show on screen inside modal
-    setActivePostcard(newPostcard);
-
-    // Feature C: Persist inside local sandbox array
-    const newMailboxItem: MailboxItem = {
-      id: txSig,
-      name: fanName.trim() || "Warm Supporter",
-      message: fanMessage.trim(),
-      amount: finalAmount,
-      txHash: txSig,
-      themeIndex: themeIndex,
-      healingWord: chosenMsg,
-      timestamp: formattedTimestamp,
-      cardIndex: cardIndex,
-      rarity: rarity
-    };
-
-    const updatedMailbox = [newMailboxItem, ...mailbox];
-    setMailbox(updatedMailbox);
-    localStorage.setItem("cozy_mailbox", JSON.stringify(updatedMailbox));
-
-    setStats(prev => ({
-      ...prev,
-      cozyPercentage: Math.min(100, Math.floor(Math.random() * 3) + 98),
-      lastSupporter: fanName.trim() || "Doodle Supporter",
-      lastAmount: finalAmount.toFixed(2)
-    }));
-
-    setIsBrewing(false);
-    setShowPostcard(true);
-    
-    if (isLiveMode) {
-      triggerNotification("📓 Real blockchain receipt postcard minted!");
-    } else {
-      triggerNotification("📓 On-chain receipt postcard minted in local collection!");
-    }
+    // Trigger transaction approval simulator modal
+    setWalletModalMode("approve");
+    setShowWalletModal(true);
   };
 
   // Successcallback called once Transaction is simulation approved
@@ -641,8 +414,66 @@ export default function App() {
     const finalAmount = getSelectedAmount();
     setIsBrewing(true);
 
-    setTimeout(async () => {
-      await processTransactionSuccess("", finalAmount, false);
+    setTimeout(() => {
+      // Retrieve 100% deterministic inputs
+      const { txSig, seedVal, cardIndex } = getDeterministicHash(fanName, fanMessage, finalAmount);
+      
+      // Calculate deterministic rarity from TxHash
+      const rarity = calculateRarity(txSig);
+      
+      // Seed theme watercolor directly from user inputs
+      const themeIndex = seedVal % themesList.length;
+      const themeObj = themesList[themeIndex];
+
+      // Seed healing word directly from user inputs
+      const healingMessageIndex = seedVal % healingMessages.length;
+      const chosenMsg = healingMessages[healingMessageIndex];
+
+      const formattedTimestamp = new Date().toLocaleString();
+
+      const newPostcard: ActivePostcardData = {
+        theme: themeObj,
+        txHash: txSig,
+        fanName: fanName.trim() || "Warm Supporter",
+        fanMessage: fanMessage.trim(),
+        healingWord: chosenMsg,
+        amount: finalAmount,
+        timestamp: formattedTimestamp,
+        cardIndex: cardIndex, // 盲盒卡片索引
+        rarity: rarity // 稀有度等级
+      };
+
+      // Set state to show on screen inside modal
+      setActivePostcard(newPostcard);
+
+      // Feature C: Persist inside local sandbox array
+      const newMailboxItem: MailboxItem = {
+        id: txSig,
+        name: fanName.trim() || "Warm Supporter",
+        message: fanMessage.trim(),
+        amount: finalAmount,
+        txHash: txSig,
+        themeIndex: themeIndex,
+        healingWord: chosenMsg,
+        timestamp: formattedTimestamp,
+        cardIndex: cardIndex, // 盲盒卡片索引
+        rarity: rarity // 稀有度等级
+      };
+
+      const updatedMailbox = [newMailboxItem, ...mailbox];
+      setMailbox(updatedMailbox);
+      localStorage.setItem("cozy_mailbox", JSON.stringify(updatedMailbox));
+
+      setStats(prev => ({
+        ...prev,
+        cozyPercentage: Math.min(100, Math.floor(Math.random() * 3) + 98),
+        lastSupporter: fanName.trim() || "Doodle Supporter",
+        lastAmount: finalAmount.toFixed(2)
+      }));
+
+      setIsBrewing(false);
+      setShowPostcard(true); // Pop up postcard review modal
+      triggerNotification("📓 On-chain receipt postcard minted in local collection!");
     }, 1200);
   };
 
@@ -727,67 +558,8 @@ export default function App() {
     }
   };
 
-  // Module C: Twitter Share Intent Feature
-  const shareToTwitter = () => {
-    if (!activePostcard) return;
-
-    try {
-      // Get rarity badge text
-      const rarityBadge = getRarityBadge(activePostcard.rarity);
-      
-      // Format transaction hash for display
-      const shortTxHash = activePostcard.txHash.length > 20 
-        ? `${activePostcard.txHash.slice(0, 8)}...${activePostcard.txHash.slice(-8)}`
-        : activePostcard.txHash;
-
-      // Production URL (replace with your actual deployment URL)
-      const productionUrl = window.location.hostname === 'localhost' 
-        ? 'https://softpay.cozy.io' 
-        : window.location.origin;
-
-      // Construct viral Web3 cozy-crypto-native tweet
-      const tweetText = `Just supported creator @lijency76 on SoftPay with a cozy tea break! 🍵
-
-Scratched off a rare ${rarityBadge.text} watercolor stamp! 🎴
-
-Check out my on-chain signature seed: ${shortTxHash}
-
-Collect and scratch your own stamp here: ${productionUrl}`;
-
-      // Encode URI and open Twitter Intent
-      const twitterIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-      
-      // Open in new window
-      window.open(twitterIntentUrl, '_blank', 'width=550,height=420');
-      
-      // Trigger notification
-      triggerNotification("📢 Share intent opened! Don't forget to attach your downloaded postcard image to amaze your followers!");
-      
-    } catch (error) {
-      console.error('Twitter share error:', error);
-      triggerNotification("❌ Failed to open share dialog. Please try again.");
-    }
-  };
-
-  // Module D: Deterministic Postcard Rotation Physics
-  const getPostcardRotation = (txHash: string): number => {
-    // Extract deterministic seed from transaction hash
-    let rotationSeed = 0;
-    for (let i = 0; i < Math.min(txHash.length, 16); i++) {
-      rotationSeed += txHash.charCodeAt(i) * (i + 1);
-    }
-    
-    // Map to range between -3 and +3 degrees for organic paper physics
-    const normalizedRotation = (rotationSeed % 600) / 100; // 0 to 6
-    const finalRotation = normalizedRotation - 3; // -3 to +3
-    
-    return finalRotation;
-  };
-
   return (
-    <div className={`min-h-screen text-black font-sans relative flex flex-col justify-between py-12 px-6 md:px-12 selection:bg-black selection:text-white transition-colors duration-500 ${
-      premiumThemeActive ? 'bg-gradient-to-br from-[#FFF5F7] via-[#FFF9E6] to-[#F0F8FF]' : 'bg-white'
-    }`}>
+    <div className="min-h-screen bg-white text-black font-sans relative flex flex-col justify-between py-12 px-6 md:px-12 selection:bg-black selection:text-white transition-colors duration-200">
       
       {/* Underlay neat minimalist dot grid */}
       <div className="absolute inset-0 [background-image:radial-gradient(#E5E5E5_1.5px,transparent_1.5px)] [background-size:24px_24px] pointer-events-none -z-10 opacity-70" />
@@ -880,7 +652,7 @@ Collect and scratch your own stamp here: ${productionUrl}`;
                 <button 
                   onClick={() => {
                     setSimulationMode("live");
-                    triggerNotification("🌐 Solana Devnet Live Mode activated. Real transactions enabled!");
+                    triggerNotification("🌐 Solana Live Mainnet selected.");
                   }}
                   className={`py-1 px-2.5 text-[10px] uppercase font-extrabold tracking-wider transition-all rounded-md cursor-pointer ${
                     simulationMode === "live" ? "bg-black text-white" : "bg-transparent text-gray-500 hover:text-black"
@@ -1274,69 +1046,6 @@ Collect and scratch your own stamp here: ${productionUrl}`;
 
         {/* Feature C: Creator's Sketchbook Inbox (Minted Collection persistent bento card) */}
         <div id="sketchbook-mailbox" className="notion-card p-6 mb-12 flex flex-col justify-between">
-          
-          {/* Stamp Collection Progress Tracker */}
-          <div className={`mb-6 p-4 rounded-xl border-2 transition-all duration-500 ${
-            premiumThemeActive 
-              ? 'bg-gradient-to-r from-pink-50 to-purple-50 border-purple-300' 
-              : 'bg-[#F4F4F4] border-black'
-          }`}>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">🎴</span>
-                <div>
-                  <h4 className="text-sm font-bold uppercase tracking-wider text-black flex items-center gap-2">
-                    Stamp Collection Album
-                    {achievementUnlocked && (
-                      <span className="text-[9px] bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full font-black border border-amber-600">
-                        ✦ COLLECTOR
-                      </span>
-                    )}
-                  </h4>
-                  <p className="text-xs text-gray-600 mt-0.5 font-medium">
-                    Collect unique cards to unlock achievements
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className="text-2xl font-black text-black font-mono">
-                    {uniqueStampsCount} / 34
-                  </div>
-                  <div className="text-[9px] uppercase tracking-wider text-gray-500 font-bold">
-                    Unique Stamps
-                  </div>
-                </div>
-                
-                {achievementUnlocked && (
-                  <button
-                    onClick={togglePremiumTheme}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border-2 ${
-                      premiumThemeActive
-                        ? 'bg-gradient-to-r from-pink-400 to-purple-400 text-white border-purple-500 shadow-lg'
-                        : 'bg-white text-black border-black hover:bg-gray-50'
-                    }`}
-                  >
-                    {premiumThemeActive ? '✨ Premium' : '🎨 Theme'}
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            {/* Progress Bar */}
-            <div className="mt-4 w-full bg-gray-200 rounded-full h-2 overflow-hidden border border-black/20">
-              <div 
-                className={`h-full transition-all duration-500 ${
-                  premiumThemeActive 
-                    ? 'bg-gradient-to-r from-pink-400 to-purple-400' 
-                    : 'bg-black'
-                }`}
-                style={{ width: `${(uniqueStampsCount / 34) * 100}%` }}
-              />
-            </div>
-          </div>
-
           <div>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b-2 border-black border-dashed">
               <div className="flex items-center gap-3">
@@ -1347,7 +1056,7 @@ Collect and scratch your own stamp here: ${productionUrl}`;
                 </div>
               </div>
               <span className="text-[10px] bg-black text-white px-3 py-1.5 rounded-lg font-mono font-bold">
-                {mailbox.length} Cozy Receipts
+                {mailbox.length} MINTED STUBS
               </span>
             </div>
 
@@ -1653,12 +1362,7 @@ Collect and scratch your own stamp here: ${productionUrl}`;
           >
             <motion.div
               initial={{ y: "-100vh", opacity: 0, rotate: -6, scale: 0.9 }}
-              animate={{ 
-                y: 0, 
-                opacity: 1, 
-                rotate: getPostcardRotation(activePostcard.txHash), // Deterministic rotation based on TxHash
-                scale: 1 
-              }}
+              animate={{ y: 0, opacity: 1, rotate: -1.5, scale: 1 }}
               exit={{ y: "-100vh", opacity: 0, rotate: 6, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 220, damping: 14, mass: 0.8 }}
               className={`bg-white border-4 border-black text-black rounded-2xl p-6 md:p-8 max-w-2xl w-full shadow-[8px_8px_0px_0px_#000000] relative overflow-hidden bg-dot-pattern ${
@@ -1714,12 +1418,12 @@ Collect and scratch your own stamp here: ${productionUrl}`;
                     </div>
 
                     <div className="py-4 flex items-center justify-center">
-                      <div className="border-2 border-dashed border-black rounded-lg p-2 bg-white/50">
-                        <ScratchCard
-                          imageUrl={`/assets/card/card_${activePostcard.cardIndex}.jpg`}
-                          onReveal={() => triggerNotification("🎨 Card art revealed!")}
-                        />
-                      </div>
+                      <img 
+                        id="blindBoxCard" 
+                        src={`/assets/card/card_${activePostcard.cardIndex}.jpg`}
+                        className="w-full h-auto block border-2 border-dashed border-black bg-white rounded-lg" 
+                        alt="Collectible Blind Box Card Art"
+                      />
                     </div>
 
                     <div>
@@ -1796,31 +1500,21 @@ Collect and scratch your own stamp here: ${productionUrl}`;
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-6 grid grid-cols-3 gap-3">
+              <div className="mt-6 grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={downloadPostcard}
-                  className="flex items-center justify-center gap-2 py-4 bg-white border-2 border-black text-black hover:bg-gray-50 rounded-xl text-xs tracking-wide uppercase font-black cursor-pointer transition-all shadow-[3px_3px_0px_0px_#000000] hover:shadow-[5px_5px_0px_0px_#000000]"
+                  className="flex items-center justify-center gap-2 py-4 bg-white border-2 border-black text-black hover:bg-gray-50 rounded-xl text-sm tracking-wide uppercase font-black cursor-pointer transition-all shadow-[3px_3px_0px_0px_#000000] hover:shadow-[5px_5px_0px_0px_#000000]"
                 >
                   <span>💾</span>
-                  <span className="hidden sm:inline">Save</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={shareToTwitter}
-                  className="flex items-center justify-center gap-2 py-4 bg-[#1DA1F2] border-2 border-black text-white hover:bg-[#1a8cd8] rounded-xl text-xs tracking-wide uppercase font-black cursor-pointer transition-all shadow-[3px_3px_0px_0px_#000000] hover:shadow-[5px_5px_0px_0px_#000000]"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Share to X</span>
-                  <span className="sm:hidden">Share</span>
+                  <span>Save to Journal</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowPostcard(false)}
-                  className="notion-btn-primary py-4 hover:bg-gray-900 justify-center text-xs tracking-wide uppercase font-black cursor-pointer"
+                  className="notion-btn-primary py-4 hover:bg-gray-900 justify-center text-sm tracking-wide uppercase font-black cursor-pointer"
                 >
-                  <span className="hidden sm:inline">Done & Return</span>
-                  <span className="sm:hidden">Done</span>
+                  Done & Return
                 </button>
               </div>
             </motion.div>
@@ -1831,3 +1525,4 @@ Collect and scratch your own stamp here: ${productionUrl}`;
     </div>
   );
 }
+
