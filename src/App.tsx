@@ -958,7 +958,7 @@ Collect and scratch your own stamp here: ${productionUrl}`;
                 <span className="block text-[10px] uppercase tracking-wider font-mono font-bold text-gray-500">Connections</span>
                 <div className="grid grid-cols-2 gap-3">
                   <a 
-                    href="https://pinterest.com" 
+                    href="https://www.pinterest.com/lijency76" 
                     target="_blank" 
                     rel="noreferrer"
                     className="flex items-center justify-center gap-1.5 text-xs text-black bg-[#F4F4F4] border border-black rounded-lg py-2 hover:bg-white transition-all font-bold"
@@ -967,7 +967,7 @@ Collect and scratch your own stamp here: ${productionUrl}`;
                     <span>Pinterest</span>
                   </a>
                   <a 
-                    href="https://linktr.ee" 
+                    href="https://linktr.ee/lijency76" 
                     target="_blank" 
                     rel="noreferrer"
                     className="flex items-center justify-center gap-1.5 text-xs text-black bg-[#F4F4F4] border border-black rounded-lg py-2 hover:bg-white transition-all font-bold"
@@ -1062,8 +1062,9 @@ Collect and scratch your own stamp here: ${productionUrl}`;
                 
                 <div className="space-y-3">
                   <a 
-                    href="#notion-designs"
-                    onClick={(e) => { e.preventDefault(); triggerNotification("📓 Loading Notion doodle portfolio..."); }}
+                    href="https://www.notion.so/lijency76" 
+                    target="_blank"
+                    rel="noreferrer"
                     className="flex items-center justify-between p-3 rounded-xl bg-[#F4F4F4] border border-black hover:bg-white transition-all text-xs font-bold text-black"
                   >
                     <span className="flex items-center gap-2">
@@ -1074,8 +1075,9 @@ Collect and scratch your own stamp here: ${productionUrl}`;
                   </a>
 
                   <a 
-                    href="#vector-strokes"
-                    onClick={(e) => { e.preventDefault(); triggerNotification("📐 Loading sketch guidelines..."); }}
+                    href="https://github.com/jencyfei" 
+                    target="_blank"
+                    rel="noreferrer"
                     className="flex items-center justify-between p-3 rounded-xl bg-[#F4F4F4] border border-black hover:bg-white transition-all text-xs font-bold text-black"
                   >
                     <span className="flex items-center gap-2">

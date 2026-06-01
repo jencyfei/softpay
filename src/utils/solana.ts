@@ -13,7 +13,7 @@ import {
 } from '@solana/web3.js';
 
 // Jency's wallet address
-export const CREATOR_WALLET_ADDRESS = '5HzpKNbnRE7gwSPEmeKpwQbCoG3k9w';
+export const CREATOR_WALLET_ADDRESS = 'CHPWoZe6ZPxrTdj2iwWYUHydvT5AYw56ciQVTWTraGT2';
 
 // Solana Devnet connection
 export const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
@@ -94,16 +94,16 @@ export const sendSolTransaction = async (
     const solAmount = usdToSol(amountUSD);
     const lamports = Math.floor(solAmount * LAMPORTS_PER_SOL);
 
-    // CRITICAL FIX: Ensure both sender and receiver are PublicKey objects
+    // Ensure both sender and receiver are PublicKey objects
     const senderPubkey = new PublicKey(provider.publicKey.toString());
     const recipientPubkey = new PublicKey(CREATOR_WALLET_ADDRESS);
 
-    // Get recent blockhash
-    const { blockhash } = await connection.getLatestBlockhash('confirmed');
+    // Get latest blockhash for modern confirmation strategy
+    const latestBlockhash = await connection.getLatestBlockhash('confirmed');
 
     // Create transaction with properly instantiated PublicKey objects
     const transaction = new Transaction({
-      recentBlockhash: blockhash,
+      recentBlockhash: latestBlockhash.blockhash,
       feePayer: senderPubkey,
     }).add(
       SystemProgram.transfer({
@@ -114,18 +114,28 @@ export const sendSolTransaction = async (
     );
 
     // Sign and send transaction
-    const { signature } = await provider.signAndSendTransaction(transaction);
+    const signedTransaction = await provider.signAndSendTransaction(transaction);
+    
+    // Extract signature (handle both string and object responses)
+    const signature = typeof signedTransaction === 'string' 
+      ? signedTransaction 
+      : signedTransaction.signature;
 
-    // Wait for confirmation
-    await connection.confirmTransaction(signature, 'confirmed');
+    // Modern confirmation strategy with blockhash fulfillment
+    await connection.confirmTransaction({
+      signature: signature,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    }, 'confirmed');
 
     return {
       signature,
       amount: solAmount,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Transaction failed:', error);
-    throw error;
+    // Provide detailed error message for debugging
+    throw new Error(error.message || 'Unknown transaction error');
   }
 };
 
