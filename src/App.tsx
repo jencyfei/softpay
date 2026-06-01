@@ -740,9 +740,9 @@ export default function App() {
         ? `${activePostcard.txHash.slice(0, 8)}...${activePostcard.txHash.slice(-8)}`
         : activePostcard.txHash;
 
-      // Production URL (replace with your actual deployment URL)
+      // Production URL - verified live domain
       const productionUrl = window.location.hostname === 'localhost' 
-        ? 'https://softpay.cozy.io' 
+        ? 'https://feifeiexplains.online' 
         : window.location.origin;
 
       // Construct viral Web3 cozy-crypto-native tweet
